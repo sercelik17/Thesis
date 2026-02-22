@@ -233,10 +233,10 @@ Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için `LICENSE` dosy
 
 ## 👥 Yazar
 
-**Proje Geliştiricisi**: [Adınız]
-**E-posta**: [email@example.com]
-**Üniversite**: [Üniversite Adı]
-**Bölüm**: [Bölüm Adı]
+**Proje Geliştiricisi**: Serenay Çelikkaya
+**E-posta**: sercelik96@gmail.com
+**Üniversite**: Burdur Mehmet Akif Ersoy Üniversitesi
+**Bölüm**: Bilgisayar Mühendisliği Yüksek Lisans Programı
 
 ## 🙏 Teşekkürler
 
@@ -248,9 +248,7 @@ Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için `LICENSE` dosy
 ## 📞 İletişim
 
 Sorularınız için:
-- **E-posta**: [email@example.com]
-- **GitHub Issues**: [Repository Issues]
-- **Dokümantasyon**: [Wiki/Docs Link]
+- **E-posta**: [sercelik96@gmail.com]
 
 ---
 
