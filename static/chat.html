@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hayvancılık AI Sohbet Robotu</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .chat-container {
+            width: 90%;
+            max-width: 800px;
+            height: 90vh;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .chat-header h1 {
+            font-size: 1.5em;
+            margin-bottom: 5px;
+        }
+
+        .chat-header p {
+            opacity: 0.9;
+            font-size: 0.9em;
+        }
+
+        .login-section {
+            padding: 40px;
+            text-align: center;
+        }
+
+        .login-form {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e1e1;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message.bot {
+            justify-content: flex-start;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            word-wrap: break-word;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+        }
+
+        .message.bot .message-content {
+            background: white;
+            color: #333;
+            border: 1px solid #e1e1e1;
+        }
+
+        .chat-input {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e1e1e1;
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e1e1e1;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+        }
+
+        .chat-input input:focus {
+            border-color: #4CAF50;
+        }
+
+        .send-btn {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: transform 0.2s;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .conversation-list {
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e1e1e1;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .conversation-item {
+            padding: 10px;
+            margin-bottom: 5px;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .conversation-item:hover {
+            background: #e8f5e8;
+        }
+
+        .conversation-item.active {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .success {
+            background: #e8f5e8;
+            color: #2e7d32;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .logout-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        @media (max-width: 768px) {
+            .chat-container {
+                width: 95%;
+                height: 95vh;
+            }
+            
+            .message-content {
+                max-width: 85%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <!-- Login Section -->
+        <div id="loginSection" class="login-section">
+            <h2>Hayvancılık AI Sohbet Robotu</h2>
+            <p>Hayvancılık konularında size yardımcı olmak için buradayım!</p>
+            
+            <div class="login-form">
+                <div class="form-group">
+                    <label for="email">E-posta:</label>
+                    <input type="email" id="email" placeholder="ornek@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Şifre:</label>
+                    <input type="password" id="password" placeholder="Şifrenizi girin" required>
+                </div>
+                <button class="btn" onclick="login()">Giriş Yap</button>
+                <p style="margin-top: 20px; color: #666;">
+                    Hesabınız yok mu? <a href="#" onclick="showRegister()" style="color: #4CAF50;">Kayıt olun</a>
+                </p>
+            </div>
+
+            <!-- Register Form -->
+            <div id="registerForm" class="login-form" style="display: none;">
+                <h3>Yeni Hesap Oluştur</h3>
+                <div class="form-group">
+                    <label for="regEmail">E-posta:</label>
+                    <input type="email" id="regEmail" placeholder="ornek@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="regUsername">Kullanıcı Adı:</label>
+                    <input type="text" id="regUsername" placeholder="Kullanıcı adınız" required>
+                </div>
+                <div class="form-group">
+                    <label for="regFullName">Ad Soyad:</label>
+                    <input type="text" id="regFullName" placeholder="Adınız Soyadınız" required>
+                </div>
+                <div class="form-group">
+                    <label for="regPassword">Şifre:</label>
+                    <input type="password" id="regPassword" placeholder="Şifrenizi girin" required>
+                </div>
+                <button class="btn" onclick="register()">Kayıt Ol</button>
+                <p style="margin-top: 20px; color: #666;">
+                    Zaten hesabınız var mı? <a href="#" onclick="showLogin()" style="color: #4CAF50;">Giriş yapın</a>
+                </p>
+            </div>
+        </div>
+
+        <!-- Chat Section -->
+        <div id="chatSection" style="display: none;">
+            <div class="chat-header">
+                <h1>🐄 Hayvancılık AI Asistanı</h1>
+                <p>Size hayvancılık konularında yardımcı olmaya hazırım!</p>
+                <button class="logout-btn" onclick="logout()">Çıkış</button>
+            </div>
+
+            <div class="conversation-list" id="conversationList">
+                <h4>Konuşmalarım</h4>
+                <div id="conversations"></div>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                <div class="message bot">
+                    <div class="message-content">
+                        Merhaba! Hayvancılık konularında size nasıl yardımcı olabilirim? 
+                        Sığır, koyun, keçi, kümes hayvanları hakkında sorularınızı sorabilirsiniz.
+                    </div>
+                </div>
+            </div>
+
+            <div class="loading" id="loading">
+                <p>AI düşünüyor...</p>
+            </div>
+
+            <div class="chat-input">
+                <input type="text" id="messageInput" placeholder="Hayvancılık hakkında bir soru sorun..." 
+                       onkeypress="handleKeyPress(event)">
+                <button class="send-btn" onclick="sendMessage()" id="sendBtn">Gönder</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let currentConversationId = null;
+        let conversations = [];
+
+        // API Base URL
+        const API_BASE = window.location.origin;
+
+        // Check if user is logged in
+        function checkAuth() {
+            const token = localStorage.getItem('token');
+            if (token) {
+                // Verify token with API
+                fetch(`${API_BASE}/auth/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else {
+                        localStorage.removeItem('token');
+                        throw new Error('Invalid token');
+                    }
+                })
+                .then(user => {
+                    currentUser = user;
+                    showChatSection();
+                    loadConversations();
+                })
+                .catch(error => {
+                    console.error('Auth check failed:', error);
+                    showLoginSection();
+                });
+            } else {
+                showLoginSection();
+            }
+        }
+
+        // Show login section
+        function showLoginSection() {
+            document.getElementById('loginSection').style.display = 'block';
+            document.getElementById('chatSection').style.display = 'none';
+        }
+
+        // Show chat section
+        function showChatSection() {
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('chatSection').style.display = 'flex';
+        }
+
+        // Show register form
+        function showRegister() {
+            document.getElementById('loginSection').querySelector('.login-form').style.display = 'none';
+            document.getElementById('registerForm').style.display = 'block';
+        }
+
+        // Show login form
+        function showLogin() {
+            document.getElementById('registerForm').style.display = 'none';
+            document.getElementById('loginSection').querySelector('.login-form').style.display = 'block';
+        }
+
+        // Login function
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            if (!email || !password) {
+                showError('Lütfen tüm alanları doldurun.');
+                return;
+            }
+
+            try {
+                const formData = new FormData();
+                formData.append('username', email);
+                formData.append('password', password);
+
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem('token', data.access_token);
+                    currentUser = await getCurrentUser();
+                    showChatSection();
+                    loadConversations();
+                    showSuccess('Başarıyla giriş yaptınız!');
+                } else {
+                    const error = await response.json();
+                    showError(error.detail || 'Giriş başarısız.');
+                }
+            } catch (error) {
+                showError('Bağlantı hatası: ' + error.message);
+            }
+        }
+
+        // Register function
+        async function register() {
+            const email = document.getElementById('regEmail').value;
+            const username = document.getElementById('regUsername').value;
+            const fullName = document.getElementById('regFullName').value;
+            const password = document.getElementById('regPassword').value;
+
+            if (!email || !username || !fullName || !password) {
+                showError('Lütfen tüm alanları doldurun.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        username: username,
+                        full_name: fullName,
+                        password: password
+                    })
+                });
+
+                if (response.ok) {
+                    showSuccess('Hesabınız başarıyla oluşturuldu! Şimdi giriş yapabilirsiniz.');
+                    showLogin();
+                } else {
+                    const error = await response.json();
+                    showError(error.detail || 'Kayıt başarısız.');
+                }
+            } catch (error) {
+                showError('Bağlantı hatası: ' + error.message);
+            }
+        }
+
+        // Get current user
+        async function getCurrentUser() {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_BASE}/auth/me`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            return await response.json();
+        }
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('token');
+            currentUser = null;
+            currentConversationId = null;
+            conversations = [];
+            showLoginSection();
+        }
+
+        // Load conversations
+        async function loadConversations() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_BASE}/chat/conversations`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    conversations = await response.json();
+                    displayConversations();
+                }
+            } catch (error) {
+                console.error('Error loading conversations:', error);
+            }
+        }
+
+        // Display conversations
+        function displayConversations() {
+            const container = document.getElementById('conversations');
+            container.innerHTML = '';
+
+            conversations.forEach(conv => {
+                const div = document.createElement('div');
+                div.className = 'conversation-item';
+                if (conv.id === currentConversationId) {
+                    div.classList.add('active');
+                }
+                div.textContent = conv.title;
+                div.onclick = () => loadConversation(conv.id);
+                container.appendChild(div);
+            });
+        }
+
+        // Load conversation messages
+        async function loadConversation(conversationId) {
+            currentConversationId = conversationId;
+            displayConversations();
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_BASE}/chat/conversations/${conversationId}/messages`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const messages = await response.json();
+                    displayMessages(messages);
+                }
+            } catch (error) {
+                console.error('Error loading conversation:', error);
+            }
+        }
+
+        // Display messages
+        function displayMessages(messages) {
+            const container = document.getElementById('chatMessages');
+            container.innerHTML = '';
+
+            messages.forEach(message => {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${message.is_user ? 'user' : 'bot'}`;
+                
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'message-content';
+                contentDiv.textContent = message.content;
+                
+                messageDiv.appendChild(contentDiv);
+                container.appendChild(messageDiv);
+            });
+
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Send message
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            // Add user message to chat
+            addMessageToChat(message, true);
+            input.value = '';
+
+            // Show loading
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('sendBtn').disabled = true;
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_BASE}/chat/send`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        conversation_id: currentConversationId
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    currentConversationId = data.conversation_id;
+                    addMessageToChat(data.response, false);
+                    loadConversations(); // Refresh conversation list
+                } else {
+                    const error = await response.json();
+                    addMessageToChat('Üzgünüm, bir hata oluştu. Lütfen tekrar deneyin.', false);
+                }
+            } catch (error) {
+                addMessageToChat('Bağlantı hatası. Lütfen tekrar deneyin.', false);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('sendBtn').disabled = false;
+            }
+        }
+
+        // Add message to chat
+        function addMessageToChat(content, isUser) {
+            const container = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.textContent = content;
+            
+            messageDiv.appendChild(contentDiv);
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Handle key press
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.textContent = message;
+            document.getElementById('loginSection').insertBefore(errorDiv, document.getElementById('loginSection').firstChild);
+            setTimeout(() => errorDiv.remove(), 5000);
+        }
+
+        // Show success message
+        function showSuccess(message) {
+            const successDiv = document.createElement('div');
+            successDiv.className = 'success';
+            successDiv.textContent = message;
+            document.getElementById('loginSection').insertBefore(successDiv, document.getElementById('loginSection').firstChild);
+            setTimeout(() => successDiv.remove(), 5000);
+        }
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+        });
+    </script>
+</body>
+</html>
+
