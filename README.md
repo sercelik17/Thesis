@@ -102,27 +102,7 @@ Uygulama `http://localhost:8000` adresinde çalışmaya başlayacaktır.
 
 ## 🔧 Konfigürasyon
 
-### Ortam Değişkenleri (.env)
-```env
-# OpenAI API Key (Gerekli)
-OPENAI_API_KEY=your_openai_api_key_here
 
-# Veritabanı URL'i
-DATABASE_URL=sqlite:///./livestock_chatbot.db
-
-# JWT Secret Key
-SECRET_KEY=your_secret_key_here
-
-# Admin Hesabı
-ADMIN_EMAIL=admin@livestock.com
-ADMIN_PASSWORD=admin123
-
-# Uygulama Ayarları
-APP_NAME=Livestock AI Chatbot
-DEBUG=True
-HOST=0.0.0.0
-PORT=8000
-```
 
 ## 📖 Kullanım
 
