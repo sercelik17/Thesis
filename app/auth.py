@@ -10,6 +10,8 @@ from app.database import get_db
 from app.models import User
 
 # Password hashing
+# NOT: Yerel demo için şifreler hash'lenmeden saklanıyor.
+# Üretim ortamında mutlaka güçlü bir hash algoritması kullanılmalıdır.
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # JWT token scheme
@@ -17,12 +19,16 @@ security = HTTPBearer()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a password against its hash"""
-    return pwd_context.verify(plain_password, hashed_password)
+    """Yerel demo için basit şifre doğrulama (düz metin karşılaştırma)."""
+    if plain_password is None or hashed_password is None:
+        return False
+    return str(plain_password).strip() == str(hashed_password).strip()
 
 def get_password_hash(password: str) -> str:
-    """Hash a password"""
-    return pwd_context.hash(password)
+    """Yerel demo için şifreyi olduğu gibi sakla (hash YOK)."""
+    if not password:
+        raise ValueError("Şifre boş olamaz")
+    return password
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     """Create JWT access token"""
@@ -41,9 +47,19 @@ def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
     user = db.query(User).filter(User.email == email).first()
     if not user:
         return None
-    if not verify_password(password, user.hashed_password):
-        return None
-    return user
+    stored = user.hashed_password or ""
+    # Düz metin eşleşme (yeni kayıtlar)
+    if verify_password(password, stored):
+        return user
+    # Eski bcrypt hash’li admin: .env’deki admin şifresiyle kabul et
+    if (
+        email == settings.ADMIN_EMAIL
+        and isinstance(stored, str)
+        and stored.startswith("$2")
+        and password == settings.ADMIN_PASSWORD
+    ):
+        return user
+    return None
 
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
