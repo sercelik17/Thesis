@@ -274,7 +274,7 @@
             <h2>Hayvancılık AI Sohbet Robotu</h2>
             <p>Hayvancılık konularında size yardımcı olmak için buradayım!</p>
             
-            <div class="login-form">
+            <form class="login-form" onsubmit="login(); return false;" action="javascript:void(0)">
                 <div class="form-group">
                     <label for="email">E-posta:</label>
                     <input type="email" id="email" placeholder="ornek@email.com" required>
@@ -283,14 +283,14 @@
                     <label for="password">Şifre:</label>
                     <input type="password" id="password" placeholder="Şifrenizi girin" required>
                 </div>
-                <button class="btn" onclick="login()">Giriş Yap</button>
+                <button type="submit" class="btn">Giriş Yap</button>
                 <p style="margin-top: 20px; color: #666;">
-                    Hesabınız yok mu? <a href="#" onclick="showRegister()" style="color: #4CAF50;">Kayıt olun</a>
+                    Hesabınız yok mu? <a href="#" onclick="showRegister(); return false;" style="color: #4CAF50;">Kayıt olun</a>
                 </p>
-            </div>
+            </form>
 
             <!-- Register Form -->
-            <div id="registerForm" class="login-form" style="display: none;">
+            <form id="registerForm" class="login-form" style="display: none;" onsubmit="register(); return false;" action="javascript:void(0)">
                 <h3>Yeni Hesap Oluştur</h3>
                 <div class="form-group">
                     <label for="regEmail">E-posta:</label>
@@ -308,11 +308,11 @@
                     <label for="regPassword">Şifre:</label>
                     <input type="password" id="regPassword" placeholder="Şifrenizi girin" required>
                 </div>
-                <button class="btn" onclick="register()">Kayıt Ol</button>
+                <button type="submit" class="btn">Kayıt Ol</button>
                 <p style="margin-top: 20px; color: #666;">
-                    Zaten hesabınız var mı? <a href="#" onclick="showLogin()" style="color: #4CAF50;">Giriş yapın</a>
+                    Zaten hesabınız var mı? <a href="#" onclick="showLogin(); return false;" style="color: #4CAF50;">Giriş yapın</a>
                 </p>
-            </div>
+            </form>
         </div>
 
         <!-- Chat Section -->
@@ -413,6 +413,32 @@
             document.getElementById('loginSection').querySelector('.login-form').style.display = 'block';
         }
 
+        function formatApiError(error) {
+            if (!error) return 'Bilinmeyen hata.';
+            if (typeof error === 'string') return error;
+            if (Array.isArray(error.detail)) {
+                return error.detail.map(e => e.msg || e.detail || JSON.stringify(e)).join(' | ');
+            }
+            if (typeof error.detail === 'string') return error.detail;
+            try {
+                return JSON.stringify(error.detail || error);
+            } catch {
+                return 'Bilinmeyen hata.';
+            }
+        }
+
+        async function safeResponseJson(response) {
+            const text = await response.text();
+            if (!text || !text.trim()) return null;
+            if (response.headers.get('content-type') && !response.headers.get('content-type').includes('json'))
+                return null;
+            try {
+                return JSON.parse(text);
+            } catch {
+                return null;
+            }
+        }
+
         // Login function
         async function login() {
             const email = document.getElementById('email').value;
@@ -424,25 +450,36 @@
             }
 
             try {
-                const formData = new FormData();
-                formData.append('username', email);
-                formData.append('password', password);
-
                 const response = await fetch(`${API_BASE}/auth/login`, {
                     method: 'POST',
-                    body: formData
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'ngrok-skip-browser-warning': 'true'
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password
+                    })
                 });
 
+                const data = await safeResponseJson(response);
+
                 if (response.ok) {
-                    const data = await response.json();
-                    localStorage.setItem('token', data.access_token);
-                    currentUser = await getCurrentUser();
-                    showChatSection();
-                    loadConversations();
-                    showSuccess('Başarıyla giriş yaptınız!');
+                    if (data && data.access_token) {
+                        localStorage.setItem('token', data.access_token);
+                        currentUser = await getCurrentUser();
+                        showChatSection();
+                        loadConversations();
+                        showSuccess('Başarıyla giriş yaptınız!');
+                    } else {
+                        showError('Sunucu geçersiz yanıt döndü.');
+                    }
                 } else {
-                    const error = await response.json();
-                    showError(error.detail || 'Giriş başarısız.');
+                    if (response.status >= 500) {
+                        showError(data && data.detail ? formatApiError(data) : 'Sunucu hatası. Lütfen daha sonra tekrar deneyin.');
+                    } else {
+                        showError(data ? formatApiError(data) : 'Giriş başarısız.');
+                    }
                 }
             } catch (error) {
                 showError('Bağlantı hatası: ' + error.message);
@@ -465,7 +502,8 @@
                 const response = await fetch(`${API_BASE}/auth/register`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'ngrok-skip-browser-warning': 'true'
                     },
                     body: JSON.stringify({
                         email: email,
@@ -475,12 +513,17 @@
                     })
                 });
 
+                const data = await safeResponseJson(response);
+
                 if (response.ok) {
                     showSuccess('Hesabınız başarıyla oluşturuldu! Şimdi giriş yapabilirsiniz.');
                     showLogin();
                 } else {
-                    const error = await response.json();
-                    showError(error.detail || 'Kayıt başarısız.');
+                    if (response.status >= 500) {
+                        showError(data && data.detail ? formatApiError(data) : 'Sunucu hatası. Lütfen daha sonra tekrar deneyin.');
+                    } else {
+                        showError(data ? formatApiError(data) : 'Kayıt başarısız.');
+                    }
                 }
             } catch (error) {
                 showError('Bağlantı hatası: ' + error.message);

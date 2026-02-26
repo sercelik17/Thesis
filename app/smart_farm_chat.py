@@ -27,7 +27,9 @@ class SmartFarmChatService:
         # Sorgu analizi
         query_analysis = self._analyze_query(query)
         
-        # Sorgu türüne göre yanıt üret
+        # Sorgu türüne göre yanıt üret (vet_appointment en başta, üretimle karışmasın)
+        if query_analysis["type"] == "vet_appointment":
+            return self._get_vet_appointments_response(farm_id)
         if query_analysis["type"] == "dashboard":
             return self._get_dashboard_response(farm_id)
         elif query_analysis["type"] == "production":
@@ -44,31 +46,36 @@ class SmartFarmChatService:
             return self._get_general_response(farm_id, query)
     
     def _analyze_query(self, query: str) -> Dict[str, Any]:
-        """Sorguyu analiz eder ve türünü belirler"""
+        """Sorguyu analiz eder ve türünü belirler.
+        Veteriner randevusu en başta yakalanır (üretim raporu çıkmasın diye).
+        """
+        query_lower = query.lower().strip()
         
-        query_lower = query.lower()
+        # Veteriner randevusu / randevu sorguları (en önce; kesinlikle üretim dönmesin)
+        if "veteriner" in query_lower or "randevu" in query_lower:
+            return {"type": "vet_appointment", "keywords": ["veteriner", "randevu"]}
         
-        # Dashboard sorguları
+        # Sağlık sorguları (dashboard'dan önce)
+        health_keywords = ["sağlık", "aşı", "hastalık", "tedavi", "kontrol"]
+        if any(keyword in query_lower for keyword in health_keywords):
+            return {"type": "health", "keywords": health_keywords}
+        
+        # Dashboard sorguları ("durum" burada; böylece "Sağlık durumu" yukarıda health'e gider)
         dashboard_keywords = ["özet", "genel durum", "dashboard", "ana sayfa", "durum", "nasıl"]
         if any(keyword in query_lower for keyword in dashboard_keywords):
             return {"type": "dashboard", "keywords": dashboard_keywords}
         
-        # Üretim sorguları
-        production_keywords = ["üretim", "süt", "et", "yumurta", "yün", "miktar", "verim"]
+        # Üretim sorguları (hayvan başına performans → üretim raporu)
+        production_keywords = ["üretim", "süt", "et", "yumurta", "yün", "miktar", "verim", "performans"]
         if any(keyword in query_lower for keyword in production_keywords):
             return {"type": "production", "keywords": production_keywords}
-        
-        # Sağlık sorguları
-        health_keywords = ["sağlık", "aşı", "hastalık", "tedavi", "veteriner", "kontrol"]
-        if any(keyword in query_lower for keyword in health_keywords):
-            return {"type": "health", "keywords": health_keywords}
         
         # Finansal sorguları
         financial_keywords = ["gelir", "gider", "kâr", "maliyet", "para", "fiyat", "satış"]
         if any(keyword in query_lower for keyword in financial_keywords):
             return {"type": "financial", "keywords": financial_keywords}
         
-        # Hayvan sorguları
+        # Hayvan sorguları (liste, detay, ekle/güncelle; performans yukarıda üretimde)
         animal_keywords = ["hayvan", "sığır", "koyun", "keçi", "tavuk", "küpe", "numara"]
         if any(keyword in query_lower for keyword in animal_keywords):
             return {"type": "animal", "keywords": animal_keywords}
@@ -197,6 +204,40 @@ class SmartFarmChatService:
                 "pending_vaccinations": health_summary.pending_vaccinations,
                 "overdue_vaccinations": health_summary.overdue_vaccinations
             }
+        }
+    
+    def _get_vet_appointments_response(self, farm_id: int) -> Dict[str, Any]:
+        """Veteriner randevularını listeler (yaklaşan aşı/tedavi/kontrol tarihleri)."""
+        appointments = crud.get_upcoming_health_appointments(self.db, farm_id, days_ahead=90)
+        farm = crud.get_farm(self.db, farm_id)
+        
+        response = f"📅 **{farm.name} – Veteriner Randevuları**\n\n"
+        
+        if not appointments:
+            response += "Kayıtlı yaklaşan randevunuz bulunmuyor.\n\n"
+            response += "Aşı veya kontrol için **Sağlık kaydı** ekleyerek sonraki tarih (next_due_date) belirtebilirsiniz; bu liste otomatik güncellenir.\n"
+            suggestions = ["Sağlık kaydı ekle", "Sağlık durumu", "Yaklaşan aşılar"]
+        else:
+            response += f"Önümüzdeki 90 gün içinde **{len(appointments)}** randevu kaydı var:\n\n"
+            for i, rec in enumerate(appointments[:15], 1):
+                animal_name = "Çiftlik geneli"
+                if rec.animal_id:
+                    animal = crud.get_animal(self.db, rec.animal_id)
+                    animal_name = (animal.name or animal.tag_number) if animal else "Bilinmeyen hayvan"
+                tarih = rec.next_due_date.strftime("%d.%m.%Y") if rec.next_due_date else "—"
+                tip = rec.record_type or "kontrol"
+                desc = (rec.description or "")[:50] + ("..." if len(rec.description or "") > 50 else "")
+                vet = f" – Dr. {rec.veterinarian}" if rec.veterinarian else ""
+                response += f"**{i}. {tarih}** – {animal_name}\n"
+                response += f"   {tip}: {desc}{vet}\n\n"
+            if len(appointments) > 15:
+                response += f"_… ve {len(appointments) - 15} randevu daha._\n\n"
+            suggestions = ["Sağlık durumu", "Sağlık kayıtları", "Geciken aşılar"]
+        
+        return {
+            "response": response,
+            "suggestions": suggestions,
+            "data": {"appointments_count": len(appointments)}
         }
     
     def _get_financial_response(self, farm_id: int, query_analysis: Dict) -> Dict[str, Any]:

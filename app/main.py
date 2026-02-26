@@ -1,7 +1,7 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from sqlalchemy.orm import Session
 from app.database import engine, get_db
 from app import models, schemas, crud
@@ -16,8 +16,27 @@ models.Base.metadata.create_all(bind=engine)
 app = FastAPI(
     title=settings.APP_NAME,
     description="Hayvancılık sektöründe yapay zeka destekli sohbet robotu",
-    version="1.0.0"
+    version="1.0.0",
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
 )
+
+# 500 hatalarını JSON döndüren middleware (Starlette varsayılanından önce)
+async def catch_all_exception_middleware(request, call_next):
+    try:
+        return await call_next(request)
+    except Exception as exc:
+        if isinstance(exc, HTTPException):
+            raise exc
+        import traceback
+        traceback.print_exc()
+        return JSONResponse(
+            status_code=500,
+            content={"detail": f"{type(exc).__name__}: {str(exc)}"},
+        )
+
+app.middleware("http")(catch_all_exception_middleware)
 
 # CORS middleware
 app.add_middleware(
@@ -33,6 +52,20 @@ app.include_router(auth.router)
 app.include_router(chat.router)
 app.include_router(admin.router)
 app.include_router(farm.router)
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    """Yakalanmamış hataları JSON olarak döndür (500). HTTPException olduğu gibi bırakılır."""
+    if isinstance(exc, HTTPException):
+        raise exc
+    import traceback
+    traceback.print_exc()
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"{type(exc).__name__}: {str(exc)}"},
+    )
+
 
 @app.on_event("startup")
 async def startup_event():
@@ -308,8 +341,15 @@ async def register_page():
     return HTMLResponse(content=html_content)
 
 @app.get("/smart-farm", response_class=HTMLResponse)
-async def smart_farm_interface():
-    """Serve smart farm interface - authentication handled by frontend"""
+async def smart_farm_interface(request: Request):
+    """Serve smart farm interface.
+    Giriş yapılmamışsa backend seviyesinde /login sayfasına yönlendirir.
+    """
+    # Basit cookie tabanlı kontrol: /auth/login başarılı olduğunda sf_logged_in=1 set ediyoruz
+    logged_in = request.cookies.get("sf_logged_in") == "1"
+    if not logged_in:
+        return RedirectResponse(url="/login", status_code=307)
+
     try:
         with open("static/smart_farm.html", "r", encoding="utf-8") as f:
             return HTMLResponse(content=f.read())

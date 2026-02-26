@@ -310,6 +310,23 @@ def get_upcoming_vaccinations(db: Session, farm_id: int, days_ahead: int = 30) -
         )
     ).all()
 
+
+def get_upcoming_health_appointments(db: Session, farm_id: int, days_ahead: int = 90) -> List[models.HealthRecord]:
+    """Yaklaşan veteriner randevularını (next_due_date olan aşı/tedavi/kontrol) getirir."""
+    from datetime import datetime, timedelta
+    from sqlalchemy import asc
+    now = datetime.utcnow()
+    future_date = now + timedelta(days=days_ahead)
+    return db.query(models.HealthRecord).filter(
+        and_(
+            models.HealthRecord.farm_id == farm_id,
+            models.HealthRecord.next_due_date.isnot(None),
+            models.HealthRecord.next_due_date >= now,
+            models.HealthRecord.next_due_date <= future_date
+        )
+    ).order_by(asc(models.HealthRecord.next_due_date)).limit(30).all()
+
+
 def create_health_record(db: Session, record: schemas.HealthRecordCreate) -> models.HealthRecord:
     db_record = models.HealthRecord(
         farm_id=record.farm_id,
