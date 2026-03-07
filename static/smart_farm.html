@@ -4,16 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Akıllı Çiftlik Yönetim Sistemi</title>
-    <script>
-        (function(){
-            var t = localStorage.getItem('token');
-            if (!t || t === 'null' || t === 'undefined') {
-                window.location.replace('/login');
-            }
-        })();
-    </script>
     <style>
-        body { visibility: hidden; }
         * {
             margin: 0;
             padding: 0;
@@ -48,23 +39,6 @@
         .header p {
             font-size: 1.2rem;
             opacity: 0.9;
-        }
-        .header {
-            position: relative;
-        }
-        .logout-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            padding: 8px 16px;
-            background: rgba(255,255,255,0.2);
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
-            font-size: 0.95rem;
-        }
-        .logout-btn:hover {
-            background: rgba(255,255,255,0.3);
         }
 
         .dashboard {
@@ -347,7 +321,6 @@
         <div class="header">
             <h1>🏡 Akıllı Çiftlik Yönetim Sistemi</h1>
             <p>Yapay zeka destekli çiftlik yönetimi ve analiz platformu</p>
-            <a href="#" onclick="logout(); return false;" class="logout-btn">Çıkış Yap</a>
         </div>
 
         <div class="dashboard">
@@ -435,23 +408,82 @@
         let currentFarmId = null;
         let token = localStorage.getItem('token');
 
-        // Sayfa yüklendiğinde: token yoksa head'deki script zaten /login'e yönlendirdi; buraya gelindiyse giriş var
+        // Sayfa yüklendiğinde çiftlikleri getir
         window.onload = function() {
+            // Token'ı tekrar kontrol et
             token = localStorage.getItem('token');
+            
             if (!token || token === 'null' || token === 'undefined') {
-                window.location.replace('/login');
+                // Token yoksa tüm sayfayı gizle ve giriş mesajı göster
+                hideAllContent();
+                showLoginMessage();
                 return;
             }
-            document.body.style.visibility = 'visible';
             loadFarms();
         };
 
-        async function logout() {
-            localStorage.removeItem('token');
-            try {
-                await fetch('/auth/logout', { method: 'POST', credentials: 'include' });
-            } catch (e) {}
-            window.location.replace('/login');
+        function hideAllContent() {
+            // Tüm ana içeriği gizle
+            const mainContent = document.querySelector('.container');
+            if (mainContent) {
+                mainContent.style.display = 'none';
+            }
+        }
+
+        function showLoginMessage() {
+            // Giriş mesajı göster
+            const body = document.body;
+            body.innerHTML = `
+                <div style="
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    min-height: 100vh;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                ">
+                    <div style="
+                        text-align: center;
+                        background: rgba(255,255,255,0.1);
+                        padding: 40px;
+                        border-radius: 20px;
+                        backdrop-filter: blur(10px);
+                        max-width: 500px;
+                    ">
+                        <h1 style="font-size: 2.5rem; margin-bottom: 20px;">🔒 Erişim Gerekli</h1>
+                        <p style="font-size: 1.2rem; margin-bottom: 30px; opacity: 0.9;">
+                            Çiftlik yönetim sistemine erişmek için giriş yapmanız gerekiyor.
+                        </p>
+                        <a href="/login" style="
+                            display: inline-block;
+                            padding: 15px 30px;
+                            background: #4CAF50;
+                            color: white;
+                            text-decoration: none;
+                            border-radius: 25px;
+                            font-size: 1.2em;
+                            transition: transform 0.3s;
+                            margin: 10px;
+                        " onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+                            🔐 Giriş Yap
+                        </a>
+                        <a href="/" style="
+                            display: inline-block;
+                            padding: 15px 30px;
+                            background: rgba(255,255,255,0.2);
+                            color: white;
+                            text-decoration: none;
+                            border-radius: 25px;
+                            font-size: 1.2em;
+                            transition: transform 0.3s;
+                            margin: 10px;
+                        " onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+                            🏠 Ana Sayfa
+                        </a>
+                    </div>
+                </div>
+            `;
         }
 
         async function loadFarms() {
@@ -463,8 +495,10 @@
                 });
 
                 if (response.status === 401 || response.status === 403) {
+                    // Token geçersizse tüm sayfayı gizle ve giriş mesajı göster
                     localStorage.removeItem('token');
-                    window.location.href = '/login';
+                    hideAllContent();
+                    showLoginMessage();
                     return;
                 }
 
@@ -487,35 +521,14 @@
             }
         }
 
-        function resetChatToInitial() {
-            const container = document.getElementById('chatMessages');
-            container.innerHTML = `
-                <div class="message bot">
-                    <h4>🏡 Akıllı Çiftlik Asistanı</h4>
-                    <p>Merhaba! Size çiftliğiniz hakkında detaylı bilgiler verebilirim.</p>
-                    <p>Önce bir çiftlik seçin, sonra sorularınızı sorabilirsiniz:</p>
-                    <ul>
-                        <li>"Çiftliğimin genel durumu nasıl?"</li>
-                        <li>"Bu ayki üretimim nasıl?"</li>
-                        <li>"Hangi hayvanlarımın aşısı yaklaşıyor?"</li>
-                        <li>"Bu ayki gelir-gider durumum nasıl?"</li>
-                    </ul>
-                </div>
-            `;
-            container.scrollTop = container.scrollHeight;
-        }
-
         async function loadFarmData() {
             const farmSelect = document.getElementById('farmSelect');
             currentFarmId = farmSelect.value;
             
             if (!currentFarmId) {
                 clearFarmStats();
-                resetChatToInitial();
                 return;
             }
-
-            resetChatToInitial();
 
             try {
                 const response = await fetch(`/farm/${currentFarmId}/analytics/dashboard`, {

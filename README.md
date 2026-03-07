@@ -102,27 +102,7 @@ Uygulama `http://localhost:8000` adresinde çalışmaya başlayacaktır.
 
 ## 🔧 Konfigürasyon
 
-### Ortam Değişkenleri (.env)
-```env
-# OpenAI API Key (Gerekli)
-OPENAI_API_KEY=your_openai_api_key_here
 
-# Veritabanı URL'i
-DATABASE_URL=sqlite:///./livestock_chatbot.db
-
-# JWT Secret Key
-SECRET_KEY=your_secret_key_here
-
-# Admin Hesabı
-ADMIN_EMAIL=admin@livestock.com
-ADMIN_PASSWORD=admin123
-
-# Uygulama Ayarları
-APP_NAME=Livestock AI Chatbot
-DEBUG=True
-HOST=0.0.0.0
-PORT=8000
-```
 
 ## 📖 Kullanım
 
@@ -253,10 +233,10 @@ Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için `LICENSE` dosy
 
 ## 👥 Yazar
 
-**Proje Geliştiricisi**: [Adınız]
-**E-posta**: [email@example.com]
-**Üniversite**: [Üniversite Adı]
-**Bölüm**: [Bölüm Adı]
+**Proje Geliştiricisi**: Serenay Çelikkaya
+**E-posta**: sercelik96@gmail.com
+**Üniversite**: Burdur Mehmet Akif Ersoy Üniversitesi
+**Bölüm**: Bilgisayar Mühendisliği Yüksek Lisans Programı
 
 ## 🙏 Teşekkürler
 
@@ -268,9 +248,7 @@ Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için `LICENSE` dosy
 ## 📞 İletişim
 
 Sorularınız için:
-- **E-posta**: [email@example.com]
-- **GitHub Issues**: [Repository Issues]
-- **Dokümantasyon**: [Wiki/Docs Link]
+- **E-posta**: [sercelik96@gmail.com]
 
 ---
 

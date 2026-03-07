@@ -1,0 +1,11 @@
+# Render.com Blueprint - Bilgisayar kapalıyken de uygulama ayakta kalsın (hoca erişimi)
+# https://dashboard.render.com/ adresinden "New" -> "Blueprint" ile bu repo'yu bağlayın.
+
+services:
+  - type: web
+    name: akilli-ciftlik
+    runtime: python
+    plan: free
+
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
